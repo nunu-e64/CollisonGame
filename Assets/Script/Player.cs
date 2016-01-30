@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+﻿	using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -17,7 +17,7 @@ public class Player : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-		if (gameManager.gameStatus==GameManager.GameStatus.MOVE && Input.GetMouseButton (0)) {
+		if (Input.GetMouseButton (0)) {
 			Ray ray = Camera.main.ScreenPointToRay (Input.mousePosition);
 			RaycastHit hit = new RaycastHit ();
 
@@ -40,7 +40,6 @@ public class Player : MonoBehaviour {
 		}
 	}
 
-//	void OnCollisionStay(Collision other){
 	void OnTriggerStay(Collider other) {
 	if (other.gameObject.layer ==  LayerMask.NameToLayer("Enemy")) {
 			if (!collisionList.Contains (other.gameObject)) {

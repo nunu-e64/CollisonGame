@@ -20,8 +20,12 @@ public class GameManager : MonoBehaviour {
 		END
 	}
 	public GameStatus gameStatus = GameStatus.MOVE;
-
 	private int vanishCounter = 0;
+
+	public string[] tagList;
+	public int MIN_CHAIN_NUM;
+
+
 
 	// Use this for initialization
 	IEnumerator Start () {
@@ -32,7 +36,7 @@ public class GameManager : MonoBehaviour {
 		for (int i = 0; i < 10; i++) {
 			yield return new WaitForSeconds(0.1f);
 			foreach (var enemy in enemies) {
-				var positon = new Vector3 (Random.Range (-4, 4), Random.Range (0, 20), 0);
+				var positon = new Vector3 (Random.Range (-6, 6), Random.Range (-15, 15), 0);
 				var obj = GameObject.Instantiate (enemy, positon, Quaternion.identity) as GameObject;
 				obj.transform.parent = transform;
 			}
@@ -41,7 +45,6 @@ public class GameManager : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-	
 		if (gameStatus == GameStatus.MOVE || gameStatus == GameStatus.WAIT_TO_VANISH) timer -= Time.deltaTime;
 
 		if (timer < 0) {
@@ -65,7 +68,6 @@ public class GameManager : MonoBehaviour {
 	}
 
 	void AddNewEnemy(){
-
 		int enemyIndex;
 		for (int i = 0; i < vanishCounter; i++) { 
 			enemyIndex = Random.Range (0, enemies.Length);
@@ -75,38 +77,35 @@ public class GameManager : MonoBehaviour {
 		}
 	}
 
-	void CheckChain(){
-		Renderer enemyRednderer;
+	void CheckChain(){	//Check Chaind gems in every frame;
+		var chainEnemyListList = new List<List<Enemy>> ();
 
-		foreach (Transform child1 in transform) {
-			foreach (Transform child2 in transform) {
+		foreach (string tag in tagList) {
+			
+			foreach (var enemyObj in GameObject.FindGameObjectsWithTag(tag)) {
+				var enemy = enemyObj.GetComponent<Enemy> ();
+				if (!enemy.check) {
+					var chainList = new List<Enemy>();
+					bool vanish = false;
+					enemy.CheckChain(tag, chainList, ref vanish);	//start recursive check
+					Debug.Log (tag + ":" + chainList.Count.ToString());
+					chainEnemyListList.Add (chainList);
+				}
+			}				
 
-				if (child1 == child2)
-					continue;
-
-				if (child1.CompareTag ("White") && child2.CompareTag ("Yellow")) {
-					if ((child1.position - child2.position).sqrMagnitude * 4 <
-					    (child1.localScale.x + child2.localScale.x) * (child1.localScale.x + child2.localScale.x)) {
-
-						if (!vanishEnemies.Contains (child1.gameObject)) {
-							vanishEnemies.Add (child1.gameObject);
-							enemyRednderer = child1.gameObject.GetComponent<Renderer> ();
-							enemyRednderer.material.EnableKeyword ("_EMISSION");
-							enemyRednderer.material.SetColor ("_EmissionColor", new Color (0.5f, 0.5f, 0.5f));
-						}
-
-						if (!vanishEnemies.Contains (child2.gameObject)) {
-							vanishEnemies.Add (child2.gameObject);
-							enemyRednderer = child2.gameObject.GetComponent<Renderer> ();
-							enemyRednderer.material.EnableKeyword ("_EMISSION");
-							enemyRednderer.material.SetColor ("_EmissionColor", new Color (0.5f, 0.5f, 0.5f));
-						}
+			// apply checkchain result
+			foreach (var chainList in chainEnemyListList) {
+				foreach (var chainedEnemy in chainList) {
+					if (chainList.Count >= MIN_CHAIN_NUM) {
+						chainedEnemy.InvokeChainEffect ();
+					} else {
+						chainedEnemy.ResetChainEffect ();
 					}
 				}
 			}
 		}
 	}
-
+		
 	void VanishEnemy(){
 		foreach (var vanishEnemy in vanishEnemies) {
 			Destroy (vanishEnemy);
