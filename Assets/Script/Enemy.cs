@@ -7,7 +7,7 @@ public class Enemy : MonoBehaviour {
 	public bool check = false;
 	private bool chaining = false;
 	private float vanishTimer = 0.0f;
-	public float VANISH_TIME;
+	private float VANISH_TIME = 4.0f;
 
 	// Use this for initialization
 	void Start () {
@@ -52,5 +52,9 @@ public class Enemy : MonoBehaviour {
 		Renderer enemyRednderer = gameObject.GetComponent<Renderer> ();
 		enemyRednderer.material.EnableKeyword ("_EMISSION");
 		enemyRednderer.material.SetColor ("_EmissionColor", new Color (0f, 0f, 0f));
+	}
+
+	public void Vanish(){
+		Destroy (gameObject);
 	}
 }

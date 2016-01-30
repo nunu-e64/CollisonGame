@@ -6,21 +6,22 @@ using System.Collections.Generic;
 public class GameManager : MonoBehaviour {
 
 	public Text timerText;
-	private float timer;
-	public float MOVE_TIME;
-	public float WAIT_TO_VANISH_TIME;
+	private float timer = 0.0f;
+	private float addDeltaTimer = 0.0f;
+	public float ADD_DELTA_TIME;
 
 	private GameObject[] enemies;
-	private List<GameObject> vanishEnemies;
 
 	public enum GameStatus{
-		MOVE,
-		WAIT_TO_VANISH,
-		VANISH,
+		PLAY,
 		END
 	}
-	public GameStatus gameStatus = GameStatus.MOVE;
+	public GameStatus gameStatus = GameStatus.PLAY;
+
+	public Text vanishCounterText;
 	private int vanishCounter = 0;
+	public Text maxChainText;
+	private int maxChain = 0;
 
 	public string[] tagList;
 	public int MIN_CHAIN_NUM;
@@ -30,8 +31,6 @@ public class GameManager : MonoBehaviour {
 	// Use this for initialization
 	IEnumerator Start () {
 		enemies = Resources.LoadAll <GameObject> ("Enemy");
-		vanishEnemies = new List<GameObject> ();
-		timer = MOVE_TIME;
 
 		for (int i = 0; i < 10; i++) {
 			yield return new WaitForSeconds(0.1f);
@@ -45,40 +44,37 @@ public class GameManager : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		if (gameStatus == GameStatus.MOVE || gameStatus == GameStatus.WAIT_TO_VANISH) timer -= Time.deltaTime;
+		CheckChain ();
 
-		if (timer < 0) {
-			timer = 0.0f;
+		if (gameStatus == GameStatus.PLAY) {
+			timer += Time.deltaTime;
+			addDeltaTimer += Time.deltaTime;
+		}
 
-			if (gameStatus == GameStatus.MOVE) {
-				gameStatus = GameStatus.WAIT_TO_VANISH;
-				timer = WAIT_TO_VANISH_TIME;
-				CheckChain ();
-			} else if (gameStatus == GameStatus.WAIT_TO_VANISH) {
-				gameStatus = GameStatus.VANISH;
-				VanishEnemy ();
-				AddNewEnemy();
-				gameStatus = GameStatus.MOVE;
-				timer = MOVE_TIME;
-			}
+		if (addDeltaTimer > ADD_DELTA_TIME) {
+			AddNewEnemy ();
+			addDeltaTimer = 0.0f;
 		}
 
 		timerText.text = ((int)timer).ToString() + ":" + ((int)((timer - (int)timer) * 10)).ToString();
-		timerText.color = (gameStatus==GameStatus.MOVE ? new Color(1, 0, 0) : new Color(0, 0, 1));
+		timerText.color = (gameStatus==GameStatus.PLAY ? new Color(1, 0, 0) : new Color(0, 0, 1));
+		vanishCounterText.text = "Vanish:" + vanishCounter.ToString ();
+		maxChainText.text = "MaxChain:" + maxChain.ToString ();
 	}
 
 	void AddNewEnemy(){
-		int enemyIndex;
-		for (int i = 0; i < vanishCounter; i++) { 
-			enemyIndex = Random.Range (0, enemies.Length);
-			var positon = new Vector3 (Random.Range (-4, 4), Random.Range (10, 20), 0);
+		int additionalNum = 5 * (int)(timer / ADD_DELTA_TIME); 
+		for (int i = 0; i < additionalNum; i++) { 
+			int enemyIndex = Random.Range (0, enemies.Length);
+			var positon = new Vector3 (Random.Range(-20, 20), Random.Range (-25, 25), 0);
+			positon.x += positon.x > 0 ? 10 : -10;
+			positon.y += positon.y > 0 ? 15 : -15;
 			var obj = GameObject.Instantiate (enemies[enemyIndex], positon, Quaternion.identity) as GameObject;
 			obj.transform.parent = transform;
 		}
 	}
 
 	void CheckChain(){	//Check Chaind gems in every frame;
-		var chainEnemyListList = new List<List<Enemy>> ();
 
 		foreach (string tag in tagList) {
 			
@@ -88,32 +84,25 @@ public class GameManager : MonoBehaviour {
 					var chainList = new List<Enemy>();
 					bool vanish = false;
 					enemy.CheckChain(tag, chainList, ref vanish);	//start recursive check
-					Debug.Log (tag + ":" + chainList.Count.ToString());
-					chainEnemyListList.Add (chainList);
+
+					foreach (var chainedEnemy in chainList) {
+						if (chainList.Count >= MIN_CHAIN_NUM) {
+							if (vanish) {
+								chainedEnemy.Vanish ();
+								vanishCounter++;
+								if (chainList.Count > maxChain) maxChain = chainList.Count;
+							} else {
+								chainedEnemy.InvokeChainEffect ();
+							}
+						} else {
+							chainedEnemy.ResetChainEffect ();
+						}
+					}
 				}
 			}				
 
-			// apply checkchain result
-			foreach (var chainList in chainEnemyListList) {
-				foreach (var chainedEnemy in chainList) {
-					if (chainList.Count >= MIN_CHAIN_NUM) {
-						chainedEnemy.InvokeChainEffect ();
-					} else {
-						chainedEnemy.ResetChainEffect ();
-					}
-				}
-			}
 		}
 	}
 		
-	void VanishEnemy(){
-		foreach (var vanishEnemy in vanishEnemies) {
-			Destroy (vanishEnemy);
-		}
-		
-		vanishCounter = vanishEnemies.Count;
-		vanishEnemies.Clear();
-	}
-
 }
 	
