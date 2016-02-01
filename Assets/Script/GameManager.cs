@@ -63,7 +63,7 @@ public class GameManager : MonoBehaviour {
 	}
 
 	void AddNewEnemy(){
-		int additionalNum = 5 * (int)(timer / ADD_DELTA_TIME); 
+		int additionalNum = (int)(timer / ADD_DELTA_TIME); 
 		for (int i = 0; i < additionalNum; i++) { 
 			int enemyIndex = Random.Range (0, enemies.Length);
 			var positon = new Vector3 (Random.Range(-20, 20), Random.Range (-25, 25), 0);
